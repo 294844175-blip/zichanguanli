@@ -1,0 +1,344 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  parentId  String?
+  parent    Organization? @relation("OrgHierarchy", fields: [parentId], references: [id])
+  children  Organization[] @relation("OrgHierarchy")
+  users     User[]
+  parks     Park[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("organizations")
+}
+
+model Park {
+  id              String   @id @default(uuid())
+  name            String
+  code            String   @unique
+  orgId           String   @map("org_id")
+  organization    Organization @relation(fields: [orgId], references: [id])
+  backgroundUrl   String?  @map("background_url")
+  backgroundX     Float    @default(0) @map("background_x")
+  backgroundY     Float    @default(0) @map("background_y")
+  backgroundScale Float    @default(1) @map("background_scale")
+  backgroundLocked Boolean  @default(false) @map("background_locked")
+  status          String   @default("ACTIVE")
+  
+  totalArea       Float    @default(0) @map("total_area")
+  buildingArea    Float    @default(0) @map("building_area")
+  rentableArea    Float    @default(0) @map("rentable_area")
+  greenArea       Float    @default(0) @map("green_area")
+  hardenedArea    Float    @default(0) @map("hardened_area")
+  parkingSpaces   Int      @default(0) @map("parking_spaces")
+  boardSpaces     Int      @default(0) @map("board_spaces")
+  
+  assets          Asset[]
+  customers       Customer[]
+  leases          Lease[]
+  revenueRecords  RevenueRecord[]
+  cameras         Camera[]
+  buildings       Building[]
+  parkAccesses    ParkAccess[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("parks")
+}
+
+model Building {
+  id              String   @id @default(uuid())
+  name            String
+  parkId          String   @map("park_id")
+  park            Park     @relation(fields: [parkId], references: [id])
+  
+  floors          Floor[]
+  assets          Asset[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("buildings")
+}
+
+model Floor {
+  id              String   @id @default(uuid())
+  name            String
+  buildingId      String   @map("building_id")
+  building        Building @relation(fields: [buildingId], references: [id])
+  
+  assets          Asset[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("floors")
+}
+
+model Camera {
+  id              String   @id @default(uuid())
+  code            String
+  name            String
+  x               Float    @default(0)
+  y               Float    @default(0)
+  width           Float    @default(100)
+  height          Float    @default(100)
+  rotation         Float    @default(0)
+  hikvisionConfig String?
+  
+  parkId          String   @map("park_id")
+  park            Park     @relation(fields: [parkId], references: [id])
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("cameras")
+}
+
+model Asset {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  name            String
+  type            String
+  status          String   @default("VACANT")
+  
+  area            Float    @default(0)
+  graphicArea     Float    @default(0) @map("graphic_area")
+  assetArea       Float    @default(0) @map("asset_area")
+  rentableArea    Float    @default(0) @map("rentable_area")
+  buildingArea    Float    @default(0) @map("building_area")
+  projectionArea  Float    @default(0) @map("projection_area")
+  
+  sliceX          Float    @default(0) @map("slice_x")
+  sliceY          Float    @default(0) @map("slice_y")
+  sliceWidth      Float    @default(0) @map("slice_width")
+  sliceHeight     Float    @default(0) @map("slice_height")
+  sliceRotation   Float    @default(0) @map("slice_rotation")
+  sliceIcon       String?  @map("slice_icon")
+  sliceTitle      String?  @map("slice_title")
+  
+  unitPrice       Float    @default(0) @map("unit_price")
+  propertyFeeUnit Float    @default(0) @map("property_fee_unit")
+  utilityFeeUnit  Float    @default(0) @map("utility_fee_unit")
+  
+  customer        String?
+  industry        String?
+  contractNo      String?  @map("contract_no")
+  phone           String?
+  floorHeight     Float    @default(0) @map("floor_height")
+  loadCapacity    Float    @default(0) @map("load_capacity")
+  passage         String?
+  images          String   @default("[]")
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+  
+  parkId          String   @map("park_id")
+  park            Park     @relation(fields: [parkId], references: [id])
+  
+  buildingId      String?  @map("building_id")
+  building        Building? @relation(fields: [buildingId], references: [id])
+  
+  floorId         String?  @map("floor_id")
+  floor           Floor?   @relation(fields: [floorId], references: [id])
+  
+  leases          Lease[]
+  costs           AssetCost[]
+  intendedByCustomers Customer[] @relation("IntendedAsset")
+  score           Float    @default(0)
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("assets")
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  name            String
+  type            String
+  contact         String?
+  phone           String?
+  email           String?
+  industry        String?
+  needs           String?
+  status          String   @default("ACTIVE")
+  
+  parkId          String?  @map("park_id")
+  park            Park?    @relation(fields: [parkId], references: [id])
+  
+  // 潜客意向字段
+  intendedAssetId String?  @map("intended_asset_id")
+  intendedAsset   Asset?   @relation("IntendedAsset", fields: [intendedAssetId], references: [id])
+  intendedLeaseMode String? @map("intended_lease_mode")
+  intendedQuantity Float?  @default(0) @map("intended_quantity")
+  
+  leases          Lease[]
+  followUps       FollowUp[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("customers")
+}
+
+model Lease {
+  id              String   @id @default(uuid())
+  assetId         String   @map("asset_id")
+  asset           Asset    @relation(fields: [assetId], references: [id])
+  customerId      String   @map("customer_id")
+  customer        Customer @relation(fields: [customerId], references: [id])
+  parkId          String   @map("park_id")
+  park            Park     @relation(fields: [parkId], references: [id])
+  
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  rentMethod      String   @map("rent_method")
+  billingUnit     String   @map("billing_unit")
+  unitPrice       Float    @map("unit_price")
+  quantity        Float    @default(1)
+  
+  dailyEstimate   Float    @default(0) @map("daily_estimate")
+  monthlyEstimate Float    @default(0) @map("monthly_estimate")
+  propertyFee     Float    @default(0) @map("property_fee")
+  utilityFee      Float    @default(0) @map("utility_fee")
+  waterFee        Float    @default(0) @map("water_fee")
+  electricFee     Float    @default(0) @map("electric_fee")
+  
+  status          String   @default("ACTIVE")
+  riskLevel       String   @default("NORMAL") @map("risk_level")
+  
+  deposit         Float    @default(0)
+  contractUrl     String?  @map("contract_url")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("leases")
+}
+
+model FollowUp {
+  id              String   @id @default(uuid())
+  customerId      String   @map("customer_id")
+  customer        Customer @relation(fields: [customerId], references: [id])
+  content         String
+  followUpDate    DateTime @default(now()) @map("follow_up_date")
+  nextFollowUp    DateTime? @map("next_follow_up")
+  result          String?
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("follow_ups")
+}
+
+model AssetCost {
+  id              String   @id @default(uuid())
+  assetId         String   @map("asset_id")
+  asset           Asset    @relation(fields: [assetId], references: [id])
+  type            String
+  amount          Float
+  date            DateTime
+  description     String?
+  invoiceUrl      String?  @map("invoice_url")
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("asset_costs")
+}
+
+model RevenueRecord {
+  id              String   @id @default(uuid())
+  parkId          String   @map("park_id")
+  park            Park     @relation(fields: [parkId], references: [id])
+  
+  period          String
+  targetRevenue   Float    @default(0) @map("target_revenue")
+  actualRevenue   Float    @default(0) @map("actual_revenue")
+  expectedRevenue Float    @default(0) @map("expected_revenue")
+  completionRate  Float    @default(0) @map("completion_rate")
+  
+  grossProfit     Float    @default(0) @map("gross_profit")
+  grossMargin     Float    @default(0) @map("gross_margin")
+  
+  totalCost       Float    @default(0) @map("total_cost")
+  spaceCost       Float    @default(0) @map("space_cost")
+  utilityCost     Float    @default(0) @map("utility_cost")
+  propertyCost    Float    @default(0) @map("property_cost")
+  maintenanceCost Float    @default(0) @map("maintenance_cost")
+  
+  receivable      Float    @default(0)
+  overdue         Float    @default(0)
+  notOverdue      Float    @default(0) @map("not_overdue")
+  overdueRate     Float    @default(0) @map("overdue_rate")
+  
+  source          String   @default("MANUAL")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("revenue_records")
+}
+
+model Role {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  code            String   @unique
+  description     String?
+  permissions     String
+  dataScope       String   @default("ORG") @map("data_scope")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  users           User[]
+  
+  @@map("roles")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  username        String   @unique
+  password        String
+  realName        String?  @map("real_name")
+  phone           String?
+  email           String?
+  status          String   @default("ACTIVE")
+  
+  roleId          String   @map("role_id")
+  role            Role     @relation(fields: [roleId], references: [id])
+  orgId           String?  @map("org_id")
+  organization    Organization? @relation(fields: [orgId], references: [id])
+  
+  parkAccesses    ParkAccess[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("users")
+}
+
+model ParkAccess {
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id])
+  parkId          String   @map("park_id")
+  park            Park     @relation(fields: [parkId], references: [id])
+  
+  @@id([userId, parkId])
+  @@map("park_access")
+}
+
+model Alert {
+  id              String   @id @default(uuid())
+  type            String
+  targetId        String   @map("target_id")
+  targetType      String   @map("target_type")
+  message         String
+  status          String   @default("UNREAD")
+  severity        String   @default("MEDIUM")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("alerts")
+}
