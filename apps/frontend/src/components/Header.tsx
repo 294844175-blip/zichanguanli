@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Layout, Select, Avatar, Dropdown, Button, Space, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useParkStore } from '../store/useParkStore';
 import { getParks } from '../api/parks';
 import { getUserParks, logout } from '../api/system';
 import { SettingOutlined, LogoutOutlined, UserOutlined, TeamOutlined, ApartmentOutlined } from '@ant-design/icons';
+import ProfileModal from './ProfileModal';
 
 const { Header: AntHeader } = Layout;
 
@@ -16,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({ extraContent }) => {
   const navigate = useNavigate();
   const { selectedParkId, parks, setSelectedParkId, setParks } = useParkStore();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     const loadParks = async () => {
@@ -134,12 +136,19 @@ const Header: React.FC<HeaderProps> = ({ extraContent }) => {
         {/* 用户头像和下拉菜单 */}
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
           <Space style={{ cursor: 'pointer' }}>
-            <Avatar style={{ background: '#1890ff' }}>
+            <Avatar 
+              style={{ background: '#1890ff', cursor: 'pointer' }}
+              onClick={() => {
+                setProfileModalOpen(true);
+              }}
+            >
               {user.realName ? user.realName[0] : (user.username ? user.username[0] : <UserOutlined />)}
             </Avatar>
             <span style={{ color: '#333', fontWeight: 500 }}>{user.realName || user.username}</span>
           </Space>
         </Dropdown>
+
+        <ProfileModal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
       </Space>
     </AntHeader>
   );

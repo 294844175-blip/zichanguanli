@@ -130,3 +130,13 @@ export const logout = (): void => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 };
+
+export const getMyProfile = async (): Promise<User> => {
+  const { data } = await client.get('/users/me');
+  return data;
+};
+
+export const updateMyProfile = async (data: { username?: string; newPassword?: string }): Promise<User> => {
+  const { data: res } = await client.put('/users/me', data);
+  return res;
+};
